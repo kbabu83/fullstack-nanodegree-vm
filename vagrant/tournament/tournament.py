@@ -6,43 +6,46 @@
 import psycopg2
 
 
-def connect():
+def connect(db_name='tournament'):
     """Connect to the PostgreSQL database.  Returns a database connection."""
-    return psycopg2.connect("dbname=tournament")
+    try:
+        conn = psycopg2.connect('dbname={}'.format(db_name))
+        cursor = conn.cursor()
+    except:
+        print 'Unable to connect to database; exiting!'
+    return conn, cursor
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("UPDATE players SET matches = 0, wins = 0;")
-    conn.commit()
+    db, cursor = connect()
+    cursor.execute("DELETE FROM matches;")
+    cursor.execute("UPDATE players SET matches = 0, wins = 0;")
+    db.commit()
 
-    c.close()
-    conn.close()
+    cursor.close()
+    db.close()
 
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("DELETE FROM players;")
-    conn.commit()
+    db, cursor = connect()
+    cursor.execute("DELETE FROM players;")
+    db.commit()
 
-    c.close()
-    conn.close()
+    cursor.close()
+    db.close()
 
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("SELECT COUNT(*) FROM players;")
-    res = c.fetchone()
+    db, cursor = connect()
+    cursor.execute("SELECT COUNT(*) FROM players;")
+    res = cursor.fetchone()
     count = res[0]
 
-    c.close()
-    conn.close()
+    cursor.close()
+    db.close()
     return count
 
 
@@ -55,13 +58,14 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
-    conn = connect();
-    c = conn.cursor();
-    c.execute("""INSERT INTO players (name, matches, wins) VALUES (%s, %s, %s);""", (name, 0, 0))
-    conn.commit()
+    db, cursor = connect();
+    query = """INSERT INTO players (name) VALUES (%s);"""
+    args = (name,)
+    cursor.execute(query, args)
+    db.commit()
 
-    c.close()
-    conn.close()
+    cursor.close()
+    db.close()
 
 
 def playerStandings():
@@ -77,13 +81,12 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-    conn = connect();
-    c = conn.cursor();
-    c.execute("SELECT _id, name, wins, matches FROM players ORDER BY wins DESC;")
-    res = c.fetchmany(countPlayers())
+    db, cursor = connect();
+    cursor.execute("SELECT * FROM player_standings;")
+    res = cursor.fetchmany(countPlayers())
 
-    c.close()
-    conn.close()
+    cursor.close()
+    db.close()
     return res
 
 
@@ -94,14 +97,24 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    conn = connect()
-    c = conn.cursor()
-    c.execute("""UPDATE players SET matches = matches + 1 WHERE _id IN (%s, %s)""", (winner, loser))
-    c.execute("""UPDATE players SET wins = wins + 1 WHERE _id = %s""", (winner,))
-    conn.commit()
+    db, cursor = connect()
+    # Update the matches table with match details
+    match_query = """INSERT INTO matches (winner, loser) VALUES (%s, %s)"""
+    match_args = (winner, loser)
+    cursor.execute(match_query, match_args)
 
-    c.close()
-    conn.close()
+    # Update player table with details of played matches and wins
+    query = """UPDATE players SET matches = matches + 1 WHERE _id IN (%s, %s)"""
+    args = (winner, loser)
+    cursor.execute(query, args)
+
+    query = """UPDATE players SET wins = wins + 1 WHERE _id = %s"""
+    args = (winner,)
+    cursor.execute(query, args)
+    db.commit()
+
+    cursor.close()
+    db.close()
  
 
 def swissPairings():
@@ -120,6 +133,10 @@ def swissPairings():
         name2: the second player's name
     """
     standings = playerStandings()
+    if len(standings)%2 != 0:
+        print 'No of entries not even; this app cannot proceed'
+        return
+
     players = []
     for entry in standings:
         players.append((entry[0], entry[1]))
