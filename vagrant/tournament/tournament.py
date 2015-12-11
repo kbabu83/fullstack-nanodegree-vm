@@ -103,7 +103,7 @@ def reportMatch(winner, loser):
     match_args = (winner, loser)
     cursor.execute(match_query, match_args)
 
-    # Update player table with details of played matches and wins
+    # Update players table with details of played matches and wins
     query = """UPDATE players SET matches = matches + 1 WHERE _id IN (%s, %s)"""
     args = (winner, loser)
     cursor.execute(query, args)
@@ -134,16 +134,19 @@ def swissPairings():
     """
     standings = playerStandings()
     if len(standings)%2 != 0:
-        print 'No of entries not even; this app cannot proceed'
+        print 'No. of entries not even; current solution supports only an even number of players'
         return
 
-    players = []
-    for entry in standings:
-        players.append((entry[0], entry[1]))
-
     pairings = []
-    while len(players) > 0:
-        pairings.append((players[0][0], players[0][1], players[1][0], players[1][1]))
-        players = players[2:]
+    #The next two players to be paired are always the first two elements in
+    #the list. User indices 0, 1 to retrieve the player tuple and retrieve 
+    #their id's and names from the tuple.
+    while len(standings) > 0:
+        player1 = standings[0][0], standings[0][1] #a tuple with id and name
+        player2 = standings[1][0], standings[1][1]
+        pairings.append((player1[0], player1[1], player2[0], player2[1]))
+
+        standings = standings[2:]
 
     return pairings
+
