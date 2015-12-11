@@ -5,7 +5,7 @@ This is a submission for the project P2 - Tournament Results as part of the Udac
 Running the solution
 --------------------
 
-Assumption: The solution (tournament.sql, tournament.py, tournament_test.py) are all available in a Vagrant VM instance at '/vagrant/tournament'.
+Assumption: The solution (tournament.sql, tournament.py, tournament_test.py) are all available in a Vagrant VM instance at ```/vagrant/tournament```.
 
 1. Run the psql command in a terminal on the Vagrant VM instance to bring up the PostgreSQL command prompt.
 ```shell
