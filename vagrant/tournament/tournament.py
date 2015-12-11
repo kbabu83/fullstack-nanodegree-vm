@@ -4,6 +4,8 @@
 #
 
 import psycopg2
+import logging
+import sys
 
 
 def connect(db_name='tournament'):
@@ -11,8 +13,11 @@ def connect(db_name='tournament'):
     try:
         conn = psycopg2.connect('dbname={}'.format(db_name))
         cursor = conn.cursor()
-    except:
+    except Exception, e:
         print 'Unable to connect to database; exiting!'
+        logging.exception(e)
+        sys.exit(1)
+        
     return conn, cursor
 
 
